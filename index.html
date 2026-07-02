@@ -1,0 +1,833 @@
+<!doctype html>
+<html lang="en" x-data="scheduleApp()" x-init="init()" :data-theme="theme" class="scroll-smooth">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scheduling Assistant</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              200: '#c7d2fe',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca'
+            }
+          },
+          boxShadow: {
+            soft: '0 14px 45px rgba(15, 23, 42, 0.08)'
+          }
+        }
+      }
+    };
+  </script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.24/dist/full.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    [x-cloak] { display: none !important; }
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(99, 102, 241, .14), transparent 32rem),
+        linear-gradient(135deg, hsl(var(--b2)), hsl(var(--b1)));
+    }
+    .glass-header {
+      background: color-mix(in srgb, hsl(var(--b1)) 78%, transparent);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid color-mix(in srgb, hsl(var(--bc)) 12%, transparent);
+    }
+    .flatpickr-calendar {
+      border-radius: 1rem;
+      box-shadow: 0 24px 70px rgba(15, 23, 42, .18);
+      border: 1px solid rgba(99, 102, 241, .16);
+      overflow: hidden;
+      z-index: 9999;
+    }
+    .flatpickr-day.selected,
+    .flatpickr-day.startRange,
+    .flatpickr-day.endRange,
+    .flatpickr-day.selected:hover {
+      background: #4f46e5;
+      border-color: #4f46e5;
+    }
+</style>
+</head>
+
+<body class="text-base-content antialiased">
+  <div class="drawer lg:drawer-open">
+    <input id="participant-drawer" type="checkbox" class="drawer-toggle">
+
+    <div class="drawer-content min-h-screen">
+      <header class="glass-header sticky top-0 z-30">
+        <div class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <div class="flex min-w-0 items-center gap-3">
+            <label for="participant-drawer" class="btn btn-ghost btn-square lg:hidden" aria-label="Open participants">
+              <span x-html="icon('panel-left-open', 'h-5 w-5')"></span>
+            </label>
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary-600 text-white shadow-soft">
+              <span x-html="icon('calendar-check-2', 'h-5 w-5')"></span>
+            </div>
+            <div class="min-w-0">
+              <h1 class="truncate text-lg font-semibold sm:text-xl">Scheduling Assistant</h1>
+              <p class="hidden text-sm text-base-content/60 sm:block">Find dates that work for everyone.</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-1 sm:gap-2">
+            <button class="btn btn-ghost btn-square" @click="toggleTheme" :aria-label="theme === 'business' ? 'Use light theme' : 'Use dark theme'">
+              <span x-show="theme !== 'business'" x-html="icon('moon', 'h-5 w-5')"></span>
+              <span x-show="theme === 'business'" x-html="icon('sun', 'h-5 w-5')"></span>
+            </button>
+            <button class="btn btn-ghost btn-square" @click="exportJson" aria-label="Export JSON" title="Export JSON">
+              <span x-html="icon('download', 'h-5 w-5')"></span>
+            </button>
+            <label class="btn btn-ghost btn-square" aria-label="Import JSON" title="Import JSON">
+              <span x-html="icon('upload', 'h-5 w-5')"></span>
+              <input type="file" accept="application/json,.json" class="hidden" @change="importJson">
+            </label>
+            <button class="btn btn-ghost btn-square text-error" @click="clearAll" aria-label="Clear all" title="Clear all">
+              <span x-html="icon('trash-2', 'h-5 w-5')"></span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+        <template x-if="participants.length === 0">
+          <section class="flex min-h-[calc(100vh-9rem)] items-center justify-center">
+            <div class="max-w-md text-center" x-transition.opacity.scale>
+              <div class="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] bg-primary-50 text-primary-600 shadow-soft">
+                <span x-html="icon('calendar-plus', 'h-11 w-11')"></span>
+              </div>
+              <h2 class="text-2xl font-semibold">No participants yet.</h2>
+              <p class="mt-2 text-base-content/60">Click "Add Participant" to begin.</p>
+              <button class="btn btn-primary mt-6 rounded-2xl" @click="openEditor()">
+                <span x-html="icon('plus', 'h-4 w-4')"></span>
+                Add Participant
+              </button>
+            </div>
+          </section>
+        </template>
+
+        <template x-if="participants.length > 0">
+          <section class="space-y-6" x-transition.opacity>
+            <div class="rounded-2xl border border-base-content/10 bg-base-100/78 p-5 shadow-soft">
+              <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h2 class="text-lg font-semibold">Analysis window</h2>
+                  <p class="text-sm text-base-content/60">Availability is calculated across every day in the selected month, including days no one has flagged.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                  <div class="join">
+                    <button type="button" class="btn join-item btn-square" @click="shiftMonth(-1)" aria-label="Previous month">
+                      <span x-html="icon('chevron-left', 'h-4 w-4')"></span>
+                    </button>
+                    <input type="month" class="input input-bordered join-item w-44 text-center" x-model="analysisMonth" aria-label="Analysis month">
+                    <button type="button" class="btn join-item btn-square" @click="shiftMonth(1)" aria-label="Next month">
+                      <span x-html="icon('chevron-right', 'h-4 w-4')"></span>
+                    </button>
+                  </div>
+                  <button type="button" class="btn btn-ghost btn-sm rounded-xl" @click="resetMonth()">This month</button>
+                  <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-base-content/10 px-3 py-2">
+                    <input type="checkbox" class="toggle toggle-primary toggle-sm" x-model="businessDaysOnly">
+                    <span class="text-sm font-medium">Business days only</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-x-8 gap-y-4 rounded-2xl border border-base-content/10 bg-base-100/78 px-5 py-4 shadow-soft">
+              <template x-for="card in summaryCards" :key="card.label">
+                <div class="flex items-center gap-3">
+                  <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
+                    <span x-html="icon(card.icon, 'h-4 w-4')"></span>
+                  </div>
+                  <div>
+                    <p class="text-xs uppercase tracking-wide text-base-content/50" x-text="card.label"></p>
+                    <p class="text-lg font-semibold leading-tight" x-text="card.value"></p>
+                  </div>
+                </div>
+              </template>
+            </div>
+
+            <section class="rounded-2xl border border-base-content/10 bg-base-100/78 p-5 shadow-soft">
+              <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 class="text-lg font-semibold" x-text="monthLabel()"></h2>
+                  <p class="text-sm text-base-content/60">Each day shows morning and afternoon coverage. Select a day for the full breakdown.</p>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-base-content/60">
+                  <span>Fewer</span>
+                  <div class="flex items-center gap-1">
+                    <span class="h-4 w-4 rounded bg-primary-50 ring-1 ring-inset ring-base-content/10"></span>
+                    <span class="h-4 w-4 rounded bg-primary-100"></span>
+                    <span class="h-4 w-4 rounded bg-primary-200"></span>
+                    <span class="h-4 w-4 rounded bg-primary-500"></span>
+                    <span class="h-4 w-4 rounded bg-primary-600"></span>
+                  </div>
+                  <span>Everyone</span>
+                </div>
+              </div>
+
+              <div class="overflow-x-auto">
+                <div class="min-w-[42rem]">
+                  <div class="grid grid-cols-7 gap-1.5 pb-1.5 text-center text-xs font-medium text-base-content/50">
+                    <template x-for="wd in weekdayLabels" :key="wd">
+                      <div x-text="wd"></div>
+                    </template>
+                  </div>
+                  <div class="grid grid-cols-7 gap-1.5">
+                    <template x-for="cell in calendarCells" :key="cell.key">
+                      <div>
+                        <div x-show="cell.blank" class="min-h-[4.75rem] rounded-xl"></div>
+                        <div x-show="!cell.blank && cell.excluded" class="flex min-h-[4.75rem] flex-col rounded-xl border border-dashed border-base-content/10 p-2 opacity-40">
+                          <span class="text-xs font-semibold" x-text="cell.num"></span>
+                        </div>
+                        <button x-show="!cell.blank && !cell.excluded" type="button" @click="openDay(cell.key)"
+                          class="flex min-h-[4.75rem] w-full flex-col gap-1 rounded-xl border border-base-content/10 bg-base-100 p-2 text-left transition hover:-translate-y-0.5 hover:shadow-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+                          :class="cell.isToday ? 'ring-2 ring-primary-500/40' : ''">
+                          <span class="text-xs font-semibold" :class="cell.isToday ? 'text-primary-600' : 'text-base-content/70'" x-text="cell.num"></span>
+                          <span class="flex items-center justify-between rounded-md px-1.5 py-1 text-[0.7rem] font-semibold leading-none" :class="segClass(cell.am)">
+                            <span class="opacity-80">AM</span><span x-text="segLabel(cell.am)"></span>
+                          </span>
+                          <span class="flex items-center justify-between rounded-md px-1.5 py-1 text-[0.7rem] font-semibold leading-none" :class="segClass(cell.pm)">
+                            <span class="opacity-80">PM</span><span x-text="segLabel(cell.pm)"></span>
+                          </span>
+                        </button>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="rounded-2xl border border-base-content/10 bg-base-100/78 p-5 shadow-soft">
+              <div class="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h2 class="text-lg font-semibold">Works for everyone</h2>
+                  <p class="text-sm text-base-content/60" x-text="`Slots free for all ${participants.length} participant${participants.length === 1 ? '' : 's'}.`"></p>
+                </div>
+                <span class="badge badge-primary badge-outline" x-text="`${commonDays.length} day${commonDays.length === 1 ? '' : 's'}`"></span>
+              </div>
+              <div x-show="commonDays.length === 0" class="rounded-2xl border border-dashed border-base-content/20 p-6 text-center text-base-content/60">
+                No slot works for everyone this month. Try another month.
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <template x-for="day in commonDays" :key="day.date">
+                  <button type="button" @click="openDay(day.date)" class="flex items-center gap-2 rounded-full border border-primary-200 bg-primary-50 px-3 py-1.5 text-sm text-primary-700 transition hover:bg-primary-100">
+                    <span class="font-medium" x-text="formatDate(day.date, 'ddd, MMM D')"></span>
+                    <span class="flex gap-1">
+                      <template x-for="p in day.periods" :key="p">
+                        <span class="rounded bg-primary-600 px-1.5 text-xs font-semibold text-white" x-text="p"></span>
+                      </template>
+                    </span>
+                  </button>
+                </template>
+              </div>
+            </section>
+
+            <div x-show="selectedDay" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none" @keydown.escape.window="selectedDay = null">
+              <div class="absolute inset-0 bg-black/40" @click="selectedDay = null"></div>
+              <div class="relative w-full max-w-md rounded-2xl border border-base-content/10 bg-base-100 p-5 shadow-soft" x-transition.scale>
+                <template x-if="selectedDayInfo">
+                  <div>
+                    <div class="mb-4 flex items-start justify-between gap-3">
+                      <div>
+                        <h3 class="text-lg font-semibold" x-text="formatDate(selectedDay, 'dddd, MMMM D')"></h3>
+                        <p class="text-sm text-base-content/60" x-text="formatDate(selectedDay, 'YYYY')"></p>
+                      </div>
+                      <button type="button" class="btn btn-ghost btn-square btn-sm" @click="selectedDay = null" aria-label="Close">
+                        <span x-html="icon('x', 'h-4 w-4')"></span>
+                      </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                      <template x-for="period in ['AM','PM']" :key="period">
+                        <div class="rounded-2xl border border-base-content/10 p-3">
+                          <div class="mb-3 flex items-center justify-between">
+                            <span class="font-semibold" x-text="period"></span>
+                            <span class="text-sm text-base-content/60" x-text="`${selectedDayInfo[period].count}/${participants.length}`"></span>
+                          </div>
+                          <ul class="space-y-2">
+                            <template x-for="row in selectedDayInfo[period].rows" :key="row.id">
+                              <li class="flex items-center gap-2 text-sm">
+                                <span class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full" :class="row.available ? 'bg-emerald-500 text-white' : 'bg-base-200 text-base-content/40'">
+                                  <span x-html="icon(row.available ? 'check' : 'x', 'h-3 w-3')"></span>
+                                </span>
+                                <span class="truncate" :class="row.available ? '' : 'text-base-content/50'" x-text="row.name"></span>
+                              </li>
+                            </template>
+                          </ul>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </section>
+        </template>
+      </main>
+    </div>
+
+    <aside class="drawer-side z-40">
+      <label for="participant-drawer" aria-label="Close participants" class="drawer-overlay"></label>
+      <div class="flex min-h-full w-80 flex-col border-r border-base-content/10 bg-base-100 p-4">
+        <div class="mb-4 flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-semibold">Participants</h2>
+            <p class="text-sm text-base-content/60" x-text="`${participants.length} total`"></p>
+          </div>
+          <button class="btn btn-primary btn-sm rounded-xl" @click="openEditor()">
+            <span x-html="icon('plus', 'h-4 w-4')"></span>
+            Add
+          </button>
+        </div>
+
+        <div class="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+          <template x-for="participant in participants" :key="participant.id">
+            <article class="rounded-2xl border border-base-content/10 bg-base-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-soft" x-transition.opacity.scale>
+              <div class="flex items-center gap-3">
+                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-600 font-semibold text-white" x-text="initials(participant.name)"></div>
+                <div class="min-w-0 flex-1">
+                  <h3 class="truncate font-semibold" x-text="participant.name"></h3>
+                  <p class="text-sm text-base-content/60" x-text="participantSummary(participant)"></p>
+                </div>
+                <button class="btn btn-ghost btn-square btn-sm" @click="openEditor(participant)" aria-label="Edit participant">
+                  <span x-html="icon('pencil', 'h-4 w-4')"></span>
+                </button>
+                <button class="btn btn-ghost btn-square btn-sm text-error" @click="deleteParticipant(participant.id)" aria-label="Delete participant">
+                  <span x-html="icon('trash-2', 'h-4 w-4')"></span>
+                </button>
+              </div>
+            </article>
+          </template>
+
+          <div x-show="participants.length === 0" class="rounded-2xl border border-dashed border-base-content/20 p-5 text-center text-sm text-base-content/60">
+            Add participants to start comparing dates.
+          </div>
+        </div>
+
+        <button class="btn btn-primary mt-4 w-full rounded-2xl" @click="openEditor()">
+          <span x-html="icon('plus', 'h-4 w-4')"></span>
+          Add Participant
+        </button>
+      </div>
+    </aside>
+  </div>
+
+  <dialog id="participant_modal" class="modal" x-ref="modal">
+    <div class="modal-box max-w-2xl rounded-2xl p-0" x-transition.scale>
+      <div class="border-b border-base-content/10 p-5">
+        <h2 class="text-xl font-semibold" x-text="editing.id ? 'Edit Participant' : 'Add Participant'"></h2>
+        <p class="mt-1 text-sm text-base-content/60">Choose dates, AM/PM slots, and whether those slots mean available or unavailable.</p>
+      </div>
+
+      <form class="space-y-5 p-5" @submit.prevent="saveParticipant()">
+        <label class="form-control">
+          <div class="label">
+            <span class="label-text font-medium">Name</span>
+          </div>
+          <input class="input input-bordered rounded-2xl" placeholder="Alice" x-model.trim="editing.name" @keydown.enter.prevent="saveParticipant()">
+        </label>
+
+        <div>
+          <div class="label px-0">
+            <span class="label-text font-medium">Selected slots mark this participant as</span>
+          </div>
+          <div class="join w-full">
+            <button type="button" class="btn join-item flex-1 rounded-l-2xl" :class="editing.mode === 'available' ? 'btn-primary' : 'btn-ghost'" @click="editing.mode = 'available'">
+              <span x-html="icon('check', 'h-4 w-4')"></span>
+              Available
+            </button>
+            <button type="button" class="btn join-item flex-1 rounded-r-2xl" :class="editing.mode === 'unavailable' ? 'btn-primary' : 'btn-ghost'" @click="editing.mode = 'unavailable'">
+              <span x-html="icon('ban', 'h-4 w-4')"></span>
+              Unavailable
+            </button>
+          </div>
+        </div>
+
+        <label class="form-control">
+          <div class="label">
+            <span class="label-text font-medium">Dates</span>
+          </div>
+          <input class="input input-bordered rounded-2xl" x-ref="datePicker" placeholder="Select multiple dates">
+        </label>
+
+        <div class="space-y-2">
+          <template x-for="date in editingDates" :key="date">
+            <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-base-content/10 bg-base-100 p-3" x-transition.opacity.scale>
+              <div>
+                <p class="font-medium" x-text="formatDate(date, 'MMM D, YYYY')"></p>
+                <p class="text-xs text-base-content/60" x-text="formatDate(date, 'dddd')"></p>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="join">
+                  <button type="button" class="btn btn-sm join-item" :class="dateHasPeriod(date, 'AM') ? 'btn-primary' : 'btn-ghost'" @click="toggleEditingPeriod(date, 'AM')">AM</button>
+                  <button type="button" class="btn btn-sm join-item" :class="dateHasPeriod(date, 'PM') ? 'btn-primary' : 'btn-ghost'" @click="toggleEditingPeriod(date, 'PM')">PM</button>
+                </div>
+                <button type="button" class="btn btn-ghost btn-square btn-sm text-error" @click="removeEditingDate(date)" aria-label="Remove date">
+                  <span x-html="icon('x', 'h-4 w-4')"></span>
+                </button>
+              </div>
+            </div>
+          </template>
+          <span x-show="editing.slots.length === 0" class="text-sm text-base-content/60">No slots selected.</span>
+        </div>
+
+        <p x-show="error" class="rounded-2xl bg-error/10 p-3 text-sm text-error" x-text="error"></p>
+
+        <div class="modal-action">
+          <button type="button" class="btn rounded-2xl" @click="closeEditor">Cancel</button>
+          <button type="button" class="btn btn-primary rounded-2xl" @click="saveParticipant()">
+            <span x-html="icon('save', 'h-4 w-4')"></span>
+            Save
+          </button>
+        </div>
+      </form>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button @click="closeEditor">Close</button>
+    </form>
+  </dialog>
+
+  <div class="toast toast-end z-50" x-show="toast" x-transition.opacity>
+    <div class="alert alert-info rounded-2xl shadow-soft">
+      <span x-html="icon('info', 'h-5 w-5')"></span>
+      <span x-text="toast"></span>
+    </div>
+  </div>
+
+  <script>
+    function scheduleApp() {
+      const storageKey = 'scheduling-assistant:v1';
+      const themeKey = 'scheduling-assistant:theme';
+      const monthKey = 'scheduling-assistant:month';
+      const businessKey = 'scheduling-assistant:business-days';
+
+      return {
+        participants: [],
+        editing: { id: null, name: '', mode: 'available', slots: [] },
+        picker: null,
+        error: '',
+        toast: '',
+        theme: 'winter',
+        analysisMonth: dayjs().format('YYYY-MM'),
+        businessDaysOnly: false,
+        selectedDay: null,
+        weekdayLabels: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+
+        init() {
+          this.theme = localStorage.getItem(themeKey) || 'winter';
+          const savedMonth = localStorage.getItem(monthKey);
+          if (savedMonth && /^\d{4}-\d{2}$/.test(savedMonth)) this.analysisMonth = savedMonth;
+          this.businessDaysOnly = localStorage.getItem(businessKey) === 'true';
+          this.participants = this.loadParticipants();
+          this.$watch('participants', () => this.persist(), { deep: true });
+          this.$watch('analysisMonth', (value) => localStorage.setItem(monthKey, value || ''));
+          this.$watch('businessDaysOnly', (value) => localStorage.setItem(businessKey, value));
+        },
+
+        shiftMonth(delta) {
+          const base = dayjs((this.analysisMonth || dayjs().format('YYYY-MM')) + '-01');
+          this.analysisMonth = base.add(delta, 'month').format('YYYY-MM');
+        },
+
+        resetMonth() {
+          this.analysisMonth = dayjs().format('YYYY-MM');
+        },
+
+        monthLabel() {
+          const base = dayjs(this.analysisMonth + '-01');
+          return base.isValid() ? base.format('MMMM YYYY') : '—';
+        },
+
+        loadParticipants() {
+          try {
+            const parsed = JSON.parse(localStorage.getItem(storageKey) || '{"participants":[]}');
+            return this.validPayload(parsed) ? parsed.participants.map((person) => this.normalizeParticipant(person)) : [];
+          } catch {
+            return [];
+          }
+        },
+
+        persist() {
+          localStorage.setItem(storageKey, JSON.stringify({ participants: this.participants }));
+        },
+
+        validPayload(payload) {
+          return payload &&
+            Array.isArray(payload.participants) &&
+            payload.participants.every((person) =>
+              typeof person.id === 'string' &&
+              typeof person.name === 'string' &&
+              (person.mode === undefined || ['available', 'unavailable'].includes(person.mode)) &&
+              (
+                Array.isArray(person.slots)
+                  ? person.slots.every((slot) => /^\d{4}-\d{2}-\d{2}-(AM|PM)$/.test(slot))
+                  : Array.isArray(person.dates) && person.dates.every((date) => /^\d{4}-\d{2}-\d{2}$/.test(date))
+              )
+            );
+        },
+
+        normalizeParticipant(person) {
+          const slots = Array.isArray(person.slots)
+            ? person.slots
+            : person.dates.flatMap((date) => this.slotsForDate(date));
+
+          return {
+            id: person.id,
+            name: person.name.trim() || 'Unnamed',
+            mode: ['available', 'unavailable'].includes(person.mode) ? person.mode : 'available',
+            slots: [...new Set(slots)].filter((slot) => /^\d{4}-\d{2}-\d{2}-(AM|PM)$/.test(slot)).sort()
+          };
+        },
+
+        openEditor(participant = null) {
+          this.error = '';
+          this.editing = participant
+            ? { id: participant.id, name: participant.name, mode: participant.mode, slots: [...participant.slots].sort() }
+            : { id: null, name: '', mode: 'available', slots: [] };
+          this.$refs.modal.showModal();
+          this.$nextTick(() => this.mountPicker());
+        },
+
+        closeEditor() {
+          this.destroyPicker();
+          this.$refs.modal.close();
+          this.error = '';
+        },
+
+        mountPicker() {
+          this.destroyPicker();
+          this.picker = flatpickr(this.$refs.datePicker, {
+            mode: 'multiple',
+            dateFormat: 'Y-m-d',
+            defaultDate: this.editingDates,
+            altInput: true,
+            altFormat: 'M j, Y',
+            static: true,
+            onChange: (selectedDates, _dateStr, instance) => {
+              const selectedDateKeys = selectedDates
+                .map((date) => instance.formatDate(date, 'Y-m-d'))
+                .sort();
+
+              this.editing.slots = selectedDateKeys.flatMap((date) => {
+                const existing = this.editing.slots.filter((slot) => this.slotDate(slot) === date);
+                return existing.length ? existing : this.slotsForDate(date);
+              }).sort();
+            }
+          });
+        },
+
+        destroyPicker() {
+          if (this.picker) {
+            this.picker.destroy();
+            this.picker = null;
+          }
+        },
+
+        saveParticipant() {
+          const name = this.editing.name.trim();
+          if (!name) {
+            this.error = 'Please enter a participant name.';
+            return;
+          }
+
+          const person = {
+            id: this.editing.id || this.newId(),
+            name,
+            mode: this.editing.mode,
+            slots: [...new Set(this.editing.slots)].sort()
+          };
+
+          if (this.editing.id) {
+            this.participants = this.participants.map((item) => item.id === person.id ? person : item);
+          } else {
+            this.participants = [...this.participants, person];
+          }
+
+          this.closeEditor();
+          this.notify('Participant saved.');
+        },
+
+        deleteParticipant(id) {
+          this.participants = this.participants.filter((person) => person.id !== id);
+          this.notify('Participant removed.');
+        },
+
+        removeEditingDate(date) {
+          this.editing.slots = this.editing.slots.filter((slot) => this.slotDate(slot) !== date);
+          if (this.picker) this.picker.setDate(this.editingDates, false);
+        },
+
+        clearAll() {
+          if (!this.participants.length || confirm('Clear all participants and availability?')) {
+            this.participants = [];
+            this.notify('Schedule cleared.');
+          }
+        },
+
+        toggleTheme() {
+          this.theme = this.theme === 'business' ? 'winter' : 'business';
+          localStorage.setItem(themeKey, this.theme);
+        },
+
+        exportJson() {
+          const blob = new Blob([JSON.stringify({ participants: this.participants }, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const link = Object.assign(document.createElement('a'), {
+            href: url,
+            download: `scheduling-assistant-${dayjs().format('YYYY-MM-DD')}.json`
+          });
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(url);
+          this.notify('JSON exported.');
+        },
+
+        importJson(event) {
+          const file = event.target.files[0];
+          event.target.value = '';
+          if (!file) return;
+
+          const reader = new FileReader();
+          reader.onload = () => {
+            try {
+              const parsed = JSON.parse(reader.result);
+              if (!this.validPayload(parsed)) throw new Error('Invalid schedule data.');
+              this.participants = parsed.participants.map((person) => this.normalizeParticipant(person));
+              this.notify('JSON imported.');
+            } catch {
+              this.notify('Import failed. Check the JSON structure.');
+            }
+          };
+          reader.readAsText(file);
+        },
+
+        notify(message) {
+          this.toast = message;
+          clearTimeout(this.toastTimer);
+          this.toastTimer = setTimeout(() => this.toast = '', 2400);
+        },
+
+        newId() {
+          if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+          return `participant-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        },
+
+        icon(name, classes = 'h-5 w-5') {
+          const definition = window.lucide?.icons?.[this.toPascalCase(name)];
+          const iconNode = definition?.iconNode || definition;
+          if (!Array.isArray(iconNode)) return '';
+
+          const children = iconNode.map(([tag, attrs]) => `<${tag} ${this.svgAttrs(attrs)} />`).join('');
+          return `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}">${children}</svg>`;
+        },
+
+        svgAttrs(attrs = {}) {
+          return Object.entries(attrs)
+            .map(([key, value]) => `${key}="${String(value).replaceAll('"', '&quot;')}"`)
+            .join(' ');
+        },
+
+        toPascalCase(name) {
+          return name.split('-').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('');
+        },
+
+        initials(name) {
+          return (name || '?').trim().slice(0, 1).toUpperCase();
+        },
+
+        slotsForDate(date) {
+          return [`${date}-AM`, `${date}-PM`];
+        },
+
+        slotDate(slot) {
+          return slot.slice(0, 10);
+        },
+
+        slotPeriod(slot) {
+          return slot.slice(11);
+        },
+
+        formatSlot(slot) {
+          return `${this.formatDate(this.slotDate(slot), 'MMM D')} ${this.slotPeriod(slot)}`;
+        },
+
+        formatDate(date, format) {
+          return dayjs(date).format(format);
+        },
+
+        participantSummary(participant) {
+          const label = participant.mode === 'unavailable' ? 'unavailable' : 'available';
+          return `${participant.slots.length} ${label} slots`;
+        },
+
+        dateHasPeriod(date, period) {
+          return this.editing.slots.includes(`${date}-${period}`);
+        },
+
+        toggleEditingPeriod(date, period) {
+          const slot = `${date}-${period}`;
+          this.editing.slots = this.editing.slots.includes(slot)
+            ? this.editing.slots.filter((item) => item !== slot)
+            : [...this.editing.slots, slot].sort();
+
+          if (this.picker) this.picker.setDate(this.editingDates, false);
+        },
+
+        isParticipantAvailable(participant, slot) {
+          const selected = participant.slots.includes(slot);
+          return participant.mode === 'unavailable' ? !selected : selected;
+        },
+
+        openDay(key) {
+          this.selectedDay = key;
+        },
+
+        segClass(seg) {
+          if (!seg) return 'bg-base-200/40 text-base-content/30';
+          const total = this.participants.length || 1;
+          if (seg.count === 0) return 'bg-base-200 text-base-content/40';
+          const ratio = seg.count / total;
+          if (ratio === 1) return 'bg-primary-600 text-white';
+          if (ratio >= .75) return 'bg-primary-500 text-white';
+          if (ratio >= .5) return 'bg-primary-200 text-primary-900';
+          if (ratio >= .25) return 'bg-primary-100 text-primary-800';
+          return 'bg-primary-50 text-primary-700';
+        },
+
+        segLabel(seg) {
+          if (!seg) return '';
+          return `${seg.count}/${this.participants.length}`;
+        },
+
+        get editingDates() {
+          return [...new Set(this.editing.slots.map((slot) => this.slotDate(slot)))].sort();
+        },
+
+        get uniqueSlots() {
+          return [...new Set(this.participants.flatMap((person) => person.slots))].sort();
+        },
+
+        get analysisSlots() {
+          const start = dayjs(this.analysisMonth + '-01');
+          if (!start.isValid()) return [];
+          const total = start.daysInMonth();
+          const slots = [];
+          for (let i = 0; i < total; i++) {
+            const day = start.add(i, 'day');
+            const weekday = day.day();
+            if (this.businessDaysOnly && (weekday === 0 || weekday === 6)) continue;
+            const key = day.format('YYYY-MM-DD');
+            slots.push(`${key}-AM`, `${key}-PM`);
+          }
+          return slots;
+        },
+
+        get slotCounts() {
+          return this.analysisSlots.reduce((counts, slot) => {
+            counts[slot] = this.participants.filter((person) => this.isParticipantAvailable(person, slot)).length;
+            return counts;
+          }, {});
+        },
+
+        // Slots (chronological) where at least one participant is available.
+        get scoredSlots() {
+          return this.analysisSlots
+            .map((slot) => ({ slot, count: this.slotCounts[slot] }))
+            .filter((item) => item.count > 0);
+        },
+
+        get commonSlots() {
+          if (!this.participants.length) return [];
+          return this.analysisSlots.filter((slot) => this.slotCounts[slot] === this.participants.length);
+        },
+
+        get bestSlots() {
+          return [...this.scoredSlots].sort((a, b) => b.count - a.count || a.slot.localeCompare(b.slot));
+        },
+
+        get calendarCells() {
+          const start = dayjs(this.analysisMonth + '-01');
+          if (!start.isValid()) return [];
+          const counts = this.slotCounts;
+          const today = dayjs().format('YYYY-MM-DD');
+          const total = start.daysInMonth();
+          const cells = [];
+
+          for (let i = 0; i < start.day(); i++) cells.push({ blank: true, key: `lead-${i}` });
+
+          for (let d = 0; d < total; d++) {
+            const day = start.add(d, 'day');
+            const key = day.format('YYYY-MM-DD');
+            const weekday = day.day();
+            const excluded = this.businessDaysOnly && (weekday === 0 || weekday === 6);
+            const am = counts[`${key}-AM`];
+            const pm = counts[`${key}-PM`];
+            cells.push({
+              blank: false,
+              key,
+              num: day.date(),
+              excluded,
+              isToday: key === today,
+              am: am === undefined ? null : { count: am },
+              pm: pm === undefined ? null : { count: pm }
+            });
+          }
+
+          let trail = 0;
+          while (cells.length % 7 !== 0) cells.push({ blank: true, key: `trail-${trail++}` });
+
+          return cells;
+        },
+
+        get commonDays() {
+          const byDay = {};
+          this.commonSlots.forEach((slot) => {
+            const date = this.slotDate(slot);
+            (byDay[date] = byDay[date] || []).push(this.slotPeriod(slot));
+          });
+          return Object.entries(byDay)
+            .map(([date, periods]) => ({ date, periods: periods.sort() }))
+            .sort((a, b) => a.date.localeCompare(b.date));
+        },
+
+        get selectedDayInfo() {
+          if (!this.selectedDay) return null;
+          const build = (period) => {
+            const rows = this.participants.map((person) => ({
+              id: person.id,
+              name: person.name,
+              available: this.isParticipantAvailable(person, `${this.selectedDay}-${period}`)
+            }));
+            return { rows, count: rows.filter((row) => row.available).length };
+          };
+          return { AM: build('AM'), PM: build('PM') };
+        },
+
+        get summaryCards() {
+          return [
+            { label: 'Participants', value: this.participants.length, icon: 'users' },
+            { label: 'Available slots', value: this.scoredSlots.length, icon: 'calendar-days' },
+            { label: 'Common slots', value: this.commonSlots.length, icon: 'badge-check' },
+            { label: 'Best slot', value: this.bestSlots[0] ? this.formatSlot(this.bestSlots[0].slot) : '-', icon: 'star' }
+          ];
+        }
+      };
+    }
+  </script>
+</body>
+</html>
