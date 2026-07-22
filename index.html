@@ -4,24 +4,35 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Scheduling Assistant</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2224%22 fill=%22%234f46e5%22/><text y=%22.9em%22 font-size=%2264%22 x=%2218%22>✓</text></svg>">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif']
+          },
           colors: {
             primary: {
               50: '#eef2ff',
               100: '#e0e7ff',
               200: '#c7d2fe',
+              300: '#a5b4fc',
+              400: '#818cf8',
               500: '#6366f1',
               600: '#4f46e5',
               700: '#4338ca'
             }
           },
           boxShadow: {
-            soft: '0 14px 45px rgba(15, 23, 42, 0.08)'
+            soft: '0 10px 40px -12px rgba(15, 23, 42, 0.15)',
+            lift: '0 18px 50px -12px rgba(79, 70, 229, 0.25)'
           }
         }
       }
@@ -36,32 +47,214 @@
 
   <style>
     [x-cloak] { display: none !important; }
+
+    :root {
+      --heat: #6366f1;
+      --heat-strong: #4f46e5;
+    }
+    [data-theme="business"] {
+      --heat: #818cf8;
+      --heat-strong: #6366f1;
+    }
+
+    /* Align daisyUI's primary color with the app's indigo palette */
+    [data-theme="winter"] {
+      --p: 51.1% 0.262 276.966;   /* indigo-600 */
+      --pc: 96.2% 0.018 272.314;
+    }
+    [data-theme="business"] {
+      --p: 58.5% 0.233 277.117;   /* indigo-500 */
+      --pc: 96.2% 0.018 272.314;
+    }
+
+    html { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+
     body {
       min-height: 100vh;
       background:
-        radial-gradient(circle at top left, rgba(99, 102, 241, .14), transparent 32rem),
-        linear-gradient(135deg, hsl(var(--b2)), hsl(var(--b1)));
+        radial-gradient(60rem 32rem at 85% -10%, color-mix(in srgb, var(--heat) 10%, transparent), transparent),
+        radial-gradient(50rem 30rem at -10% 25%, color-mix(in srgb, var(--heat) 7%, transparent), transparent),
+        linear-gradient(180deg, oklch(var(--b2)), oklch(var(--b1)) 24rem);
+      background-attachment: fixed;
     }
+
+    ::selection { background: color-mix(in srgb, var(--heat) 30%, transparent); }
+
     .glass-header {
-      background: color-mix(in srgb, hsl(var(--b1)) 78%, transparent);
-      backdrop-filter: blur(18px);
-      border-bottom: 1px solid color-mix(in srgb, hsl(var(--bc)) 12%, transparent);
+      background: color-mix(in srgb, oklch(var(--b1)) 72%, transparent);
+      backdrop-filter: blur(18px) saturate(1.4);
+      -webkit-backdrop-filter: blur(18px) saturate(1.4);
+      border-bottom: 1px solid color-mix(in srgb, oklch(var(--bc)) 9%, transparent);
     }
+
+    .card-surface {
+      background: color-mix(in srgb, oklch(var(--b1)) 88%, transparent);
+      border: 1px solid color-mix(in srgb, oklch(var(--bc)) 8%, transparent);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .brand-mark {
+      background-image: linear-gradient(135deg, #6366f1, #8b5cf6);
+    }
+
+    .icon-tile {
+      background: color-mix(in srgb, var(--heat) 13%, transparent);
+      color: color-mix(in srgb, var(--heat) 78%, oklch(var(--bc)));
+    }
+
+    /* ---- Availability heatmap ---- */
+    .heat-none {
+      background: color-mix(in srgb, oklch(var(--bc)) 3%, transparent);
+      color: color-mix(in srgb, oklch(var(--bc)) 28%, transparent);
+    }
+    .heat-0 {
+      background: color-mix(in srgb, oklch(var(--bc)) 6%, transparent);
+      color: color-mix(in srgb, oklch(var(--bc)) 42%, transparent);
+    }
+    .heat-1 {
+      background: color-mix(in srgb, var(--heat) 13%, transparent);
+      color: color-mix(in srgb, var(--heat) 62%, oklch(var(--bc)));
+    }
+    .heat-2 {
+      background: color-mix(in srgb, var(--heat) 26%, transparent);
+      color: color-mix(in srgb, var(--heat) 55%, oklch(var(--bc)));
+    }
+    .heat-3 {
+      background: color-mix(in srgb, var(--heat) 42%, transparent);
+      color: color-mix(in srgb, var(--heat-strong) 45%, oklch(var(--bc)));
+    }
+    .heat-4 {
+      background: color-mix(in srgb, var(--heat) 82%, oklch(var(--b1)));
+      color: #fff;
+    }
+    .heat-5 {
+      background: var(--heat-strong);
+      color: #fff;
+    }
+
+    .day-cell {
+      background: color-mix(in srgb, oklch(var(--b1)) 92%, transparent);
+      border: 1px solid color-mix(in srgb, oklch(var(--bc)) 7%, transparent);
+      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    .day-cell:hover {
+      transform: translateY(-2px);
+      border-color: color-mix(in srgb, var(--heat) 45%, transparent);
+      box-shadow: 0 12px 30px -10px color-mix(in srgb, var(--heat) 35%, transparent);
+    }
+    .day-cell.is-weekend {
+      background: color-mix(in srgb, oklch(var(--bc)) 3%, oklch(var(--b1)));
+    }
+    .day-today-num {
+      background: var(--heat-strong);
+      color: #fff;
+    }
+
+    .chip-common {
+      background: color-mix(in srgb, var(--heat) 10%, transparent);
+      border: 1px solid color-mix(in srgb, var(--heat) 28%, transparent);
+      color: color-mix(in srgb, var(--heat) 68%, oklch(var(--bc)));
+      transition: background .15s ease, transform .15s ease, box-shadow .15s ease;
+    }
+    .chip-common:hover {
+      background: color-mix(in srgb, var(--heat) 18%, transparent);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--heat) 45%, transparent);
+    }
+    .chip-period {
+      background: var(--heat-strong);
+      color: #fff;
+    }
+
+    /* ---- Segmented control ---- */
+    .seg-track {
+      background: color-mix(in srgb, oklch(var(--bc)) 6%, transparent);
+    }
+    .seg-btn {
+      transition: background .15s ease, color .15s ease, box-shadow .15s ease;
+      color: color-mix(in srgb, oklch(var(--bc)) 62%, transparent);
+    }
+    .seg-btn.seg-active {
+      background: oklch(var(--b1));
+      color: oklch(var(--bc));
+      box-shadow: 0 4px 14px -4px rgba(15, 23, 42, .2);
+    }
+
+    /* ---- Animations ---- */
+    @keyframes rise-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .rise-in { animation: rise-in .35s ease both; }
+    .rise-in-slow { animation: rise-in .5s ease both; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+      }
+    }
+
+    /* ---- flatpickr theming (driven by theme variables, works in both themes) ---- */
     .flatpickr-calendar {
+      background: oklch(var(--b1));
       border-radius: 1rem;
-      box-shadow: 0 24px 70px rgba(15, 23, 42, .18);
-      border: 1px solid rgba(99, 102, 241, .16);
+      box-shadow: 0 24px 70px rgba(15, 23, 42, .25);
+      border: 1px solid color-mix(in srgb, var(--heat) 20%, transparent);
       overflow: hidden;
       z-index: 9999;
+      font-family: inherit;
     }
+    .flatpickr-months .flatpickr-month,
+    .flatpickr-current-month .flatpickr-monthDropdown-months,
+    .flatpickr-current-month input.cur-year {
+      color: oklch(var(--bc));
+      fill: oklch(var(--bc));
+      background: transparent;
+    }
+    .flatpickr-months .flatpickr-prev-month svg,
+    .flatpickr-months .flatpickr-next-month svg { fill: oklch(var(--bc)); }
+    .flatpickr-months .flatpickr-prev-month:hover svg,
+    .flatpickr-months .flatpickr-next-month:hover svg { fill: var(--heat); }
+    span.flatpickr-weekday { color: color-mix(in srgb, oklch(var(--bc)) 55%, transparent); }
+    .flatpickr-day { color: oklch(var(--bc)); }
+    .flatpickr-day.prevMonthDay,
+    .flatpickr-day.nextMonthDay,
+    .flatpickr-day.flatpickr-disabled {
+      color: color-mix(in srgb, oklch(var(--bc)) 28%, transparent);
+    }
+    .flatpickr-day:hover,
+    .flatpickr-day.prevMonthDay:hover,
+    .flatpickr-day.nextMonthDay:hover {
+      background: color-mix(in srgb, oklch(var(--bc)) 10%, transparent);
+      border-color: transparent;
+    }
+    .flatpickr-day.today { border-color: color-mix(in srgb, var(--heat) 55%, transparent); }
+    .flatpickr-day.today:hover { background: color-mix(in srgb, var(--heat) 18%, transparent); color: oklch(var(--bc)); }
     .flatpickr-day.selected,
     .flatpickr-day.startRange,
     .flatpickr-day.endRange,
     .flatpickr-day.selected:hover {
-      background: #4f46e5;
-      border-color: #4f46e5;
+      background: var(--heat-strong);
+      border-color: var(--heat-strong);
+      color: #fff;
     }
-</style>
+    .flatpickr-calendar.arrowTop:before { border-bottom-color: color-mix(in srgb, var(--heat) 20%, transparent); }
+    .flatpickr-calendar.arrowTop:after { border-bottom-color: oklch(var(--b1)); }
+    .flatpickr-calendar.arrowBottom:before { border-top-color: color-mix(in srgb, var(--heat) 20%, transparent); }
+    .flatpickr-calendar.arrowBottom:after { border-top-color: oklch(var(--b1)); }
+
+    /* Subtle scrollbars */
+    .slim-scroll::-webkit-scrollbar { width: 6px; }
+    .slim-scroll::-webkit-scrollbar-thumb {
+      background: color-mix(in srgb, oklch(var(--bc)) 15%, transparent);
+      border-radius: 999px;
+    }
+    .slim-scroll::-webkit-scrollbar-track { background: transparent; }
+
+    .tabular-nums { font-variant-numeric: tabular-nums; }
+  </style>
 </head>
 
 <body class="text-base-content antialiased">
@@ -75,106 +268,120 @@
             <label for="participant-drawer" class="btn btn-ghost btn-square lg:hidden" aria-label="Open participants">
               <span x-html="icon('panel-left-open', 'h-5 w-5')"></span>
             </label>
-            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary-600 text-white shadow-soft">
+            <div class="brand-mark flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white shadow-lift">
               <span x-html="icon('calendar-check-2', 'h-5 w-5')"></span>
             </div>
             <div class="min-w-0">
-              <h1 class="truncate text-lg font-semibold sm:text-xl">Scheduling Assistant</h1>
-              <p class="hidden text-sm text-base-content/60 sm:block">Find dates that work for everyone.</p>
+              <h1 class="truncate text-lg font-bold tracking-tight sm:text-xl">Scheduling Assistant</h1>
+              <p class="hidden text-xs text-base-content/55 sm:block">Find dates that work for everyone</p>
             </div>
           </div>
 
           <div class="flex items-center gap-1 sm:gap-2">
-            <button class="btn btn-ghost btn-square" @click="toggleTheme" :aria-label="theme === 'business' ? 'Use light theme' : 'Use dark theme'">
+            <button class="btn btn-ghost btn-square rounded-xl" @click="toggleTheme" :aria-label="theme === 'business' ? 'Use light theme' : 'Use dark theme'">
               <span x-show="theme !== 'business'" x-html="icon('moon', 'h-5 w-5')"></span>
               <span x-show="theme === 'business'" x-html="icon('sun', 'h-5 w-5')"></span>
             </button>
-            <button class="btn btn-ghost btn-square" @click="exportJson" aria-label="Export JSON" title="Export JSON">
-              <span x-html="icon('download', 'h-5 w-5')"></span>
-            </button>
-            <label class="btn btn-ghost btn-square" aria-label="Import JSON" title="Import JSON">
-              <span x-html="icon('upload', 'h-5 w-5')"></span>
-              <input type="file" accept="application/json,.json" class="hidden" @change="importJson">
-            </label>
-            <button class="btn btn-ghost btn-square text-error" @click="clearAll" aria-label="Clear all" title="Clear all">
-              <span x-html="icon('trash-2', 'h-5 w-5')"></span>
-            </button>
+            <div class="dropdown dropdown-end">
+              <div tabindex="0" role="button" class="btn btn-ghost btn-square rounded-xl" aria-label="More options">
+                <span x-html="icon('ellipsis-vertical', 'h-5 w-5')"></span>
+              </div>
+              <ul tabindex="0" class="menu dropdown-content z-50 mt-2 w-56 rounded-2xl border border-base-content/10 bg-base-100 p-2 shadow-soft">
+                <li>
+                  <button @click="exportJson(); document.activeElement.blur()">
+                    <span x-html="icon('download', 'h-4 w-4')"></span>
+                    Export JSON
+                  </button>
+                </li>
+                <li>
+                  <label>
+                    <span x-html="icon('upload', 'h-4 w-4')"></span>
+                    Import JSON
+                    <input type="file" accept="application/json,.json" class="hidden" @change="importJson($event); document.activeElement.blur()">
+                  </label>
+                </li>
+                <li>
+                  <button class="text-error" @click="clearAll(); document.activeElement.blur()">
+                    <span x-html="icon('trash-2', 'h-4 w-4')"></span>
+                    Clear all data
+                  </button>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
       </header>
 
       <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         <template x-if="participants.length === 0">
-          <section class="flex min-h-[calc(100vh-9rem)] items-center justify-center">
-            <div class="max-w-md text-center" x-transition.opacity.scale>
-              <div class="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] bg-primary-50 text-primary-600 shadow-soft">
+          <section class="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+            <div class="rise-in-slow max-w-md text-center">
+              <div class="icon-tile mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] shadow-soft">
                 <span x-html="icon('calendar-plus', 'h-11 w-11')"></span>
               </div>
-              <h2 class="text-2xl font-semibold">No participants yet.</h2>
-              <p class="mt-2 text-base-content/60">Click "Add Participant" to begin.</p>
-              <button class="btn btn-primary mt-6 rounded-2xl" @click="openEditor()">
+              <h2 class="text-2xl font-bold tracking-tight">Plan something together</h2>
+              <p class="mx-auto mt-2 max-w-sm text-base-content/60">Add each person's availability and instantly see the days that work for the whole group.</p>
+              <button class="btn btn-primary mt-6 rounded-2xl px-6 shadow-lift" @click="openEditor()">
                 <span x-html="icon('plus', 'h-4 w-4')"></span>
-                Add Participant
+                Add your first participant
               </button>
             </div>
           </section>
         </template>
 
         <template x-if="participants.length > 0">
-          <section class="space-y-6" x-transition.opacity>
-            <div class="rounded-2xl border border-base-content/10 bg-base-100/78 p-5 shadow-soft">
+          <section class="rise-in space-y-5">
+            <!-- Analysis window + stats -->
+            <div class="card-surface rounded-3xl p-5 shadow-soft">
               <div class="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h2 class="text-lg font-semibold">Analysis window</h2>
-                  <p class="text-sm text-base-content/60">Availability is calculated across every day in the selected month, including days no one has flagged.</p>
-                </div>
-                <div class="flex flex-wrap items-center gap-3">
+                <div class="flex items-center gap-3">
                   <div class="join">
-                    <button type="button" class="btn join-item btn-square" @click="shiftMonth(-1)" aria-label="Previous month">
+                    <button type="button" class="btn btn-sm join-item btn-square" @click="shiftMonth(-1)" aria-label="Previous month">
                       <span x-html="icon('chevron-left', 'h-4 w-4')"></span>
                     </button>
-                    <input type="month" class="input input-bordered join-item w-44 text-center" x-model="analysisMonth" aria-label="Analysis month">
-                    <button type="button" class="btn join-item btn-square" @click="shiftMonth(1)" aria-label="Next month">
+                    <input type="month" class="input input-sm input-bordered join-item w-40 text-center font-medium" x-model="analysisMonth" aria-label="Analysis month">
+                    <button type="button" class="btn btn-sm join-item btn-square" @click="shiftMonth(1)" aria-label="Next month">
                       <span x-html="icon('chevron-right', 'h-4 w-4')"></span>
                     </button>
                   </div>
-                  <button type="button" class="btn btn-ghost btn-sm rounded-xl" @click="resetMonth()">This month</button>
-                  <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-base-content/10 px-3 py-2">
-                    <input type="checkbox" class="toggle toggle-primary toggle-sm" x-model="businessDaysOnly">
-                    <span class="text-sm font-medium">Business days only</span>
-                  </label>
+                  <button type="button" class="btn btn-ghost btn-sm rounded-xl" @click="resetMonth()">Today</button>
                 </div>
+                <label class="flex cursor-pointer items-center gap-2.5 rounded-xl border border-base-content/10 px-3 py-1.5">
+                  <input type="checkbox" class="toggle toggle-primary toggle-sm" x-model="businessDaysOnly">
+                  <span class="text-sm font-medium">Business days only</span>
+                </label>
+              </div>
+
+              <div class="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <template x-for="card in summaryCards" :key="card.label">
+                  <div class="flex items-center gap-3 rounded-2xl border border-base-content/5 bg-base-100/60 px-4 py-3">
+                    <div class="icon-tile flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+                      <span x-html="icon(card.icon, 'h-[1.15rem] w-[1.15rem]')"></span>
+                    </div>
+                    <div class="min-w-0">
+                      <p class="whitespace-nowrap text-[0.68rem] font-semibold uppercase tracking-wider text-base-content/45" x-text="card.label"></p>
+                      <p class="tabular-nums truncate text-lg font-bold leading-tight tracking-tight" x-text="card.value"></p>
+                    </div>
+                  </div>
+                </template>
               </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-x-8 gap-y-4 rounded-2xl border border-base-content/10 bg-base-100/78 px-5 py-4 shadow-soft">
-              <template x-for="card in summaryCards" :key="card.label">
-                <div class="flex items-center gap-3">
-                  <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
-                    <span x-html="icon(card.icon, 'h-4 w-4')"></span>
-                  </div>
-                  <div>
-                    <p class="text-xs uppercase tracking-wide text-base-content/50" x-text="card.label"></p>
-                    <p class="text-lg font-semibold leading-tight" x-text="card.value"></p>
-                  </div>
-                </div>
-              </template>
-            </div>
-
-            <section class="rounded-2xl border border-base-content/10 bg-base-100/78 p-5 shadow-soft">
-              <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <!-- Calendar heatmap -->
+            <section class="card-surface rounded-3xl p-5 shadow-soft">
+              <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
                 <div>
-                  <h2 class="text-lg font-semibold" x-text="monthLabel()"></h2>
-                  <p class="text-sm text-base-content/60">Each day shows morning and afternoon coverage. Select a day for the full breakdown.</p>
+                  <h2 class="text-xl font-bold tracking-tight" x-text="monthLabel()"></h2>
+                  <p class="mt-0.5 text-sm text-base-content/55">Morning and afternoon coverage per day — select a day for the full breakdown.</p>
                 </div>
-                <div class="flex items-center gap-2 text-xs text-base-content/60">
+                <div class="flex items-center gap-2 text-xs font-medium text-base-content/55">
                   <span>Fewer</span>
                   <div class="flex items-center gap-1">
-                    <span class="h-4 w-4 rounded bg-primary-50 ring-1 ring-inset ring-base-content/10"></span>
-                    <span class="h-4 w-4 rounded bg-primary-100"></span>
-                    <span class="h-4 w-4 rounded bg-primary-200"></span>
-                    <span class="h-4 w-4 rounded bg-primary-500"></span>
-                    <span class="h-4 w-4 rounded bg-primary-600"></span>
+                    <span class="heat-1 h-4 w-4 rounded-md"></span>
+                    <span class="heat-2 h-4 w-4 rounded-md"></span>
+                    <span class="heat-3 h-4 w-4 rounded-md"></span>
+                    <span class="heat-4 h-4 w-4 rounded-md"></span>
+                    <span class="heat-5 h-4 w-4 rounded-md"></span>
                   </div>
                   <span>Everyone</span>
                 </div>
@@ -182,27 +389,28 @@
 
               <div class="overflow-x-auto">
                 <div class="min-w-[42rem]">
-                  <div class="grid grid-cols-7 gap-1.5 pb-1.5 text-center text-xs font-medium text-base-content/50">
+                  <div class="grid grid-cols-7 gap-2 pb-2 text-center text-[0.7rem] font-semibold uppercase tracking-wider text-base-content/40">
                     <template x-for="wd in weekdayLabels" :key="wd">
                       <div x-text="wd"></div>
                     </template>
                   </div>
-                  <div class="grid grid-cols-7 gap-1.5">
+                  <div class="grid grid-cols-7 gap-2">
                     <template x-for="cell in calendarCells" :key="cell.key">
                       <div>
-                        <div x-show="cell.blank" class="min-h-[4.75rem] rounded-xl"></div>
-                        <div x-show="!cell.blank && cell.excluded" class="flex min-h-[4.75rem] flex-col rounded-xl border border-dashed border-base-content/10 p-2 opacity-40">
+                        <div x-show="cell.blank" class="min-h-[5rem] rounded-2xl"></div>
+                        <div x-show="!cell.blank && cell.excluded" class="flex min-h-[5rem] flex-col rounded-2xl border border-dashed border-base-content/10 p-2 opacity-35">
                           <span class="text-xs font-semibold" x-text="cell.num"></span>
                         </div>
                         <button x-show="!cell.blank && !cell.excluded" type="button" @click="openDay(cell.key)"
-                          class="flex min-h-[4.75rem] w-full flex-col gap-1 rounded-xl border border-base-content/10 bg-base-100 p-2 text-left transition hover:-translate-y-0.5 hover:shadow-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
-                          :class="cell.isToday ? 'ring-2 ring-primary-500/40' : ''">
-                          <span class="text-xs font-semibold" :class="cell.isToday ? 'text-primary-600' : 'text-base-content/70'" x-text="cell.num"></span>
-                          <span class="flex items-center justify-between rounded-md px-1.5 py-1 text-[0.7rem] font-semibold leading-none" :class="segClass(cell.am)">
-                            <span class="opacity-80">AM</span><span x-text="segLabel(cell.am)"></span>
+                          class="day-cell flex min-h-[5rem] w-full flex-col gap-1 rounded-2xl p-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60"
+                          :class="cell.isWeekend ? 'is-weekend' : ''">
+                          <span class="flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold"
+                            :class="cell.isToday ? 'day-today-num' : 'text-base-content/60'" x-text="cell.num"></span>
+                          <span class="flex items-center justify-between rounded-lg px-1.5 py-1 text-[0.68rem] font-bold leading-none" :class="segClass(cell.am)">
+                            <span class="font-semibold opacity-75">AM</span><span class="tabular-nums" x-text="segLabel(cell.am)"></span>
                           </span>
-                          <span class="flex items-center justify-between rounded-md px-1.5 py-1 text-[0.7rem] font-semibold leading-none" :class="segClass(cell.pm)">
-                            <span class="opacity-80">PM</span><span x-text="segLabel(cell.pm)"></span>
+                          <span class="flex items-center justify-between rounded-lg px-1.5 py-1 text-[0.68rem] font-bold leading-none" :class="segClass(cell.pm)">
+                            <span class="font-semibold opacity-75">PM</span><span class="tabular-nums" x-text="segLabel(cell.pm)"></span>
                           </span>
                         </button>
                       </div>
@@ -212,24 +420,29 @@
               </div>
             </section>
 
-            <section class="rounded-2xl border border-base-content/10 bg-base-100/78 p-5 shadow-soft">
+            <!-- Works for everyone -->
+            <section class="card-surface rounded-3xl p-5 shadow-soft">
               <div class="mb-4 flex items-center justify-between gap-3">
                 <div>
-                  <h2 class="text-lg font-semibold">Works for everyone</h2>
-                  <p class="text-sm text-base-content/60" x-text="`Slots free for all ${participants.length} participant${participants.length === 1 ? '' : 's'}.`"></p>
+                  <h2 class="text-xl font-bold tracking-tight">Works for everyone</h2>
+                  <p class="mt-0.5 text-sm text-base-content/55" x-text="`Slots free for all ${participants.length} participant${participants.length === 1 ? '' : 's'}.`"></p>
                 </div>
-                <span class="badge badge-primary badge-outline" x-text="`${commonDays.length} day${commonDays.length === 1 ? '' : 's'}`"></span>
+                <span class="badge badge-lg border-0 font-semibold" :class="commonDays.length ? 'badge-primary text-white' : 'badge-ghost'" x-text="`${commonDays.length} day${commonDays.length === 1 ? '' : 's'}`"></span>
               </div>
-              <div x-show="commonDays.length === 0" class="rounded-2xl border border-dashed border-base-content/20 p-6 text-center text-base-content/60">
-                No slot works for everyone this month. Try another month.
+              <div x-show="commonDays.length === 0" class="rounded-2xl border border-dashed border-base-content/15 p-8 text-center">
+                <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-base-content/5 text-base-content/40">
+                  <span x-html="icon('calendar-x', 'h-6 w-6')"></span>
+                </div>
+                <p class="font-medium text-base-content/70">No slot works for everyone this month</p>
+                <p class="mt-1 text-sm text-base-content/50">Try another month, or check the heatmap for near-misses.</p>
               </div>
               <div class="flex flex-wrap gap-2">
                 <template x-for="day in commonDays" :key="day.date">
-                  <button type="button" @click="openDay(day.date)" class="flex items-center gap-2 rounded-full border border-primary-200 bg-primary-50 px-3 py-1.5 text-sm text-primary-700 transition hover:bg-primary-100">
-                    <span class="font-medium" x-text="formatDate(day.date, 'ddd, MMM D')"></span>
+                  <button type="button" @click="openDay(day.date)" class="chip-common flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm">
+                    <span class="font-semibold" x-text="formatDate(day.date, 'ddd, MMM D')"></span>
                     <span class="flex gap-1">
                       <template x-for="p in day.periods" :key="p">
-                        <span class="rounded bg-primary-600 px-1.5 text-xs font-semibold text-white" x-text="p"></span>
+                        <span class="chip-period rounded-md px-1.5 py-0.5 text-[0.65rem] font-bold" x-text="p"></span>
                       </template>
                     </span>
                   </button>
@@ -237,34 +450,42 @@
               </div>
             </section>
 
+            <!-- Day detail modal -->
             <div x-show="selectedDay" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none" @keydown.escape.window="selectedDay = null">
-              <div class="absolute inset-0 bg-black/40" @click="selectedDay = null"></div>
-              <div class="relative w-full max-w-md rounded-2xl border border-base-content/10 bg-base-100 p-5 shadow-soft" x-transition.scale>
+              <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="selectedDay = null"></div>
+              <div class="relative w-full max-w-md rounded-3xl border border-base-content/10 bg-base-100 p-6 shadow-soft" x-transition.scale.origin.center>
                 <template x-if="selectedDayInfo">
                   <div>
-                    <div class="mb-4 flex items-start justify-between gap-3">
+                    <div class="mb-5 flex items-start justify-between gap-3">
                       <div>
-                        <h3 class="text-lg font-semibold" x-text="formatDate(selectedDay, 'dddd, MMMM D')"></h3>
-                        <p class="text-sm text-base-content/60" x-text="formatDate(selectedDay, 'YYYY')"></p>
+                        <h3 class="text-xl font-bold tracking-tight" x-text="formatDate(selectedDay, 'dddd')"></h3>
+                        <p class="text-sm font-medium text-base-content/55" x-text="formatDate(selectedDay, 'MMMM D, YYYY')"></p>
                       </div>
-                      <button type="button" class="btn btn-ghost btn-square btn-sm" @click="selectedDay = null" aria-label="Close">
+                      <button type="button" class="btn btn-ghost btn-square btn-sm rounded-xl" @click="selectedDay = null" aria-label="Close">
                         <span x-html="icon('x', 'h-4 w-4')"></span>
                       </button>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-2 gap-3">
                       <template x-for="period in ['AM','PM']" :key="period">
-                        <div class="rounded-2xl border border-base-content/10 p-3">
-                          <div class="mb-3 flex items-center justify-between">
-                            <span class="font-semibold" x-text="period"></span>
-                            <span class="text-sm text-base-content/60" x-text="`${selectedDayInfo[period].count}/${participants.length}`"></span>
+                        <div class="rounded-2xl border border-base-content/10 p-3.5">
+                          <div class="mb-2 flex items-center justify-between">
+                            <span class="flex items-center gap-1.5 text-sm font-bold">
+                              <span class="text-base-content/40" x-html="icon(period === 'AM' ? 'sunrise' : 'sunset', 'h-4 w-4')"></span>
+                              <span x-text="period"></span>
+                            </span>
+                            <span class="tabular-nums text-xs font-semibold text-base-content/55" x-text="`${selectedDayInfo[period].count}/${participants.length}`"></span>
+                          </div>
+                          <div class="mb-3 h-1.5 overflow-hidden rounded-full bg-base-content/10">
+                            <div class="h-full rounded-full bg-primary-500 transition-all"
+                              :style="`width: ${participants.length ? (selectedDayInfo[period].count / participants.length) * 100 : 0}%`"></div>
                           </div>
                           <ul class="space-y-2">
                             <template x-for="row in selectedDayInfo[period].rows" :key="row.id">
                               <li class="flex items-center gap-2 text-sm">
-                                <span class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full" :class="row.available ? 'bg-emerald-500 text-white' : 'bg-base-200 text-base-content/40'">
+                                <span class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full" :class="row.available ? 'bg-emerald-500 text-white' : 'bg-base-content/10 text-base-content/35'">
                                   <span x-html="icon(row.available ? 'check' : 'x', 'h-3 w-3')"></span>
                                 </span>
-                                <span class="truncate" :class="row.available ? '' : 'text-base-content/50'" x-text="row.name"></span>
+                                <span class="truncate" :class="row.available ? 'font-medium' : 'text-base-content/45'" x-text="row.name"></span>
                               </li>
                             </template>
                           </ul>
@@ -280,117 +501,124 @@
       </main>
     </div>
 
+    <!-- Participants sidebar -->
     <aside class="drawer-side z-40">
       <label for="participant-drawer" aria-label="Close participants" class="drawer-overlay"></label>
-      <div class="flex min-h-full w-80 flex-col border-r border-base-content/10 bg-base-100 p-4">
-        <div class="mb-4 flex items-center justify-between">
+      <div class="flex min-h-full w-80 flex-col border-r border-base-content/10 bg-base-100 p-4 lg:bg-base-100/70 lg:backdrop-blur-xl">
+        <div class="mb-4 flex items-center justify-between px-1">
           <div>
-            <h2 class="text-lg font-semibold">Participants</h2>
-            <p class="text-sm text-base-content/60" x-text="`${participants.length} total`"></p>
+            <h2 class="text-lg font-bold tracking-tight">Participants</h2>
+            <p class="text-xs font-medium text-base-content/50" x-text="participants.length === 1 ? '1 person' : `${participants.length} people`"></p>
           </div>
-          <button class="btn btn-primary btn-sm rounded-xl" @click="openEditor()">
-            <span x-html="icon('plus', 'h-4 w-4')"></span>
-            Add
-          </button>
         </div>
 
-        <div class="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+        <div class="slim-scroll min-h-0 flex-1 space-y-2.5 overflow-y-auto pr-1">
           <template x-for="participant in participants" :key="participant.id">
-            <article class="rounded-2xl border border-base-content/10 bg-base-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-soft" x-transition.opacity.scale>
+            <article class="group rounded-2xl border border-base-content/8 bg-base-100 p-3.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-soft" x-transition.opacity.scale>
               <div class="flex items-center gap-3">
-                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-600 font-semibold text-white" x-text="initials(participant.name)"></div>
+                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-sm" :style="avatarStyle(participant.name)" x-text="initials(participant.name)"></div>
                 <div class="min-w-0 flex-1">
-                  <h3 class="truncate font-semibold" x-text="participant.name"></h3>
-                  <p class="text-sm text-base-content/60" x-text="participantSummary(participant)"></p>
+                  <h3 class="truncate font-semibold leading-tight" x-text="participant.name"></h3>
+                  <p class="mt-0.5 flex items-center gap-1.5 text-xs text-base-content/55">
+                    <span class="inline-block h-1.5 w-1.5 rounded-full" :class="participant.mode === 'unavailable' ? 'bg-rose-400' : 'bg-emerald-400'"></span>
+                    <span x-text="participantSummary(participant)"></span>
+                  </p>
                 </div>
-                <button class="btn btn-ghost btn-square btn-sm" @click="openEditor(participant)" aria-label="Edit participant">
-                  <span x-html="icon('pencil', 'h-4 w-4')"></span>
-                </button>
-                <button class="btn btn-ghost btn-square btn-sm text-error" @click="deleteParticipant(participant.id)" aria-label="Delete participant">
-                  <span x-html="icon('trash-2', 'h-4 w-4')"></span>
-                </button>
+                <div class="flex shrink-0 gap-0.5 opacity-100 transition lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100">
+                  <button class="btn btn-ghost btn-square btn-sm rounded-xl" @click="openEditor(participant)" aria-label="Edit participant">
+                    <span x-html="icon('pencil', 'h-4 w-4')"></span>
+                  </button>
+                  <button class="btn btn-ghost btn-square btn-sm rounded-xl text-error" @click="deleteParticipant(participant.id)" aria-label="Delete participant">
+                    <span x-html="icon('trash-2', 'h-4 w-4')"></span>
+                  </button>
+                </div>
               </div>
             </article>
           </template>
 
-          <div x-show="participants.length === 0" class="rounded-2xl border border-dashed border-base-content/20 p-5 text-center text-sm text-base-content/60">
+          <div x-show="participants.length === 0" class="rounded-2xl border border-dashed border-base-content/15 p-6 text-center text-sm text-base-content/55">
             Add participants to start comparing dates.
           </div>
         </div>
 
-        <button class="btn btn-primary mt-4 w-full rounded-2xl" @click="openEditor()">
+        <button class="btn btn-primary mt-4 w-full rounded-2xl shadow-lift" @click="openEditor()">
           <span x-html="icon('plus', 'h-4 w-4')"></span>
-          Add Participant
+          Add participant
         </button>
       </div>
     </aside>
   </div>
 
+  <!-- Participant editor -->
   <dialog id="participant_modal" class="modal" x-ref="modal">
-    <div class="modal-box max-w-2xl rounded-2xl p-0" x-transition.scale>
-      <div class="border-b border-base-content/10 p-5">
-        <h2 class="text-xl font-semibold" x-text="editing.id ? 'Edit Participant' : 'Add Participant'"></h2>
-        <p class="mt-1 text-sm text-base-content/60">Choose dates, AM/PM slots, and whether those slots mean available or unavailable.</p>
+    <div class="modal-box max-w-2xl rounded-3xl p-0" x-transition.scale>
+      <div class="border-b border-base-content/10 p-6 pb-5">
+        <h2 class="text-xl font-bold tracking-tight" x-text="editing.id ? 'Edit participant' : 'Add participant'"></h2>
+        <p class="mt-1 text-sm text-base-content/55">Choose dates, AM/PM slots, and whether those slots mean available or unavailable.</p>
       </div>
 
-      <form class="space-y-5 p-5" @submit.prevent="saveParticipant()">
+      <form class="space-y-5 p-6" @submit.prevent="saveParticipant()">
         <label class="form-control">
-          <div class="label">
-            <span class="label-text font-medium">Name</span>
+          <div class="label pb-1.5 pt-0">
+            <span class="label-text font-semibold">Name</span>
           </div>
-          <input class="input input-bordered rounded-2xl" placeholder="Alice" x-model.trim="editing.name" @keydown.enter.prevent="saveParticipant()">
+          <input class="input input-bordered rounded-2xl" placeholder="e.g. Alice" x-model.trim="editing.name" @keydown.enter.prevent="saveParticipant()">
         </label>
 
         <div>
-          <div class="label px-0">
-            <span class="label-text font-medium">Selected slots mark this participant as</span>
+          <div class="label px-0 pb-1.5 pt-0">
+            <span class="label-text font-semibold">Selected slots mark this participant as</span>
           </div>
-          <div class="join w-full">
-            <button type="button" class="btn join-item flex-1 rounded-l-2xl" :class="editing.mode === 'available' ? 'btn-primary' : 'btn-ghost'" @click="editing.mode = 'available'">
-              <span x-html="icon('check', 'h-4 w-4')"></span>
+          <div class="seg-track grid grid-cols-2 gap-1 rounded-2xl p-1">
+            <button type="button" class="seg-btn flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold" :class="editing.mode === 'available' ? 'seg-active' : ''" @click="editing.mode = 'available'">
+              <span class="text-emerald-500" x-html="icon('check', 'h-4 w-4')"></span>
               Available
             </button>
-            <button type="button" class="btn join-item flex-1 rounded-r-2xl" :class="editing.mode === 'unavailable' ? 'btn-primary' : 'btn-ghost'" @click="editing.mode = 'unavailable'">
-              <span x-html="icon('ban', 'h-4 w-4')"></span>
+            <button type="button" class="seg-btn flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold" :class="editing.mode === 'unavailable' ? 'seg-active' : ''" @click="editing.mode = 'unavailable'">
+              <span class="text-rose-500" x-html="icon('ban', 'h-4 w-4')"></span>
               Unavailable
             </button>
           </div>
+          <p class="mt-2 text-xs text-base-content/50" x-text="modeHint"></p>
         </div>
 
         <label class="form-control">
-          <div class="label">
-            <span class="label-text font-medium">Dates</span>
+          <div class="label pb-1.5 pt-0">
+            <span class="label-text font-semibold">Dates</span>
           </div>
           <input class="input input-bordered rounded-2xl" x-ref="datePicker" placeholder="Select multiple dates">
         </label>
 
         <div class="space-y-2">
           <template x-for="date in editingDates" :key="date">
-            <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-base-content/10 bg-base-100 p-3" x-transition.opacity.scale>
+            <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-base-content/10 bg-base-100 px-4 py-3" x-transition.opacity.scale>
               <div>
-                <p class="font-medium" x-text="formatDate(date, 'MMM D, YYYY')"></p>
-                <p class="text-xs text-base-content/60" x-text="formatDate(date, 'dddd')"></p>
+                <p class="font-semibold leading-tight" x-text="formatDate(date, 'MMM D, YYYY')"></p>
+                <p class="text-xs text-base-content/50" x-text="formatDate(date, 'dddd')"></p>
               </div>
               <div class="flex items-center gap-2">
                 <div class="join">
-                  <button type="button" class="btn btn-sm join-item" :class="dateHasPeriod(date, 'AM') ? 'btn-primary' : 'btn-ghost'" @click="toggleEditingPeriod(date, 'AM')">AM</button>
-                  <button type="button" class="btn btn-sm join-item" :class="dateHasPeriod(date, 'PM') ? 'btn-primary' : 'btn-ghost'" @click="toggleEditingPeriod(date, 'PM')">PM</button>
+                  <button type="button" class="btn btn-sm join-item w-14" :class="dateHasPeriod(date, 'AM') ? 'btn-primary' : 'btn-ghost border border-base-content/10'" @click="toggleEditingPeriod(date, 'AM')">AM</button>
+                  <button type="button" class="btn btn-sm join-item w-14" :class="dateHasPeriod(date, 'PM') ? 'btn-primary' : 'btn-ghost border border-base-content/10'" @click="toggleEditingPeriod(date, 'PM')">PM</button>
                 </div>
-                <button type="button" class="btn btn-ghost btn-square btn-sm text-error" @click="removeEditingDate(date)" aria-label="Remove date">
+                <button type="button" class="btn btn-ghost btn-square btn-sm rounded-xl text-error" @click="removeEditingDate(date)" aria-label="Remove date">
                   <span x-html="icon('x', 'h-4 w-4')"></span>
                 </button>
               </div>
             </div>
           </template>
-          <span x-show="editing.slots.length === 0" class="text-sm text-base-content/60">No slots selected.</span>
+          <p x-show="editing.slots.length === 0" class="rounded-2xl border border-dashed border-base-content/15 px-4 py-3 text-center text-sm text-base-content/50">No slots selected yet.</p>
         </div>
 
-        <p x-show="error" class="rounded-2xl bg-error/10 p-3 text-sm text-error" x-text="error"></p>
+        <p x-show="error" class="flex items-center gap-2 rounded-2xl bg-error/10 p-3 text-sm font-medium text-error">
+          <span x-html="icon('circle-alert', 'h-4 w-4')"></span>
+          <span x-text="error"></span>
+        </p>
 
-        <div class="modal-action">
-          <button type="button" class="btn rounded-2xl" @click="closeEditor">Cancel</button>
-          <button type="button" class="btn btn-primary rounded-2xl" @click="saveParticipant()">
-            <span x-html="icon('save', 'h-4 w-4')"></span>
+        <div class="modal-action mt-2">
+          <button type="button" class="btn btn-ghost rounded-2xl" @click="closeEditor">Cancel</button>
+          <button type="button" class="btn btn-primary rounded-2xl px-6" @click="saveParticipant()">
+            <span x-html="icon('check', 'h-4 w-4')"></span>
             Save
           </button>
         </div>
@@ -401,10 +629,10 @@
     </form>
   </dialog>
 
-  <div class="toast toast-end z-50" x-show="toast" x-transition.opacity>
-    <div class="alert alert-info rounded-2xl shadow-soft">
-      <span x-html="icon('info', 'h-5 w-5')"></span>
-      <span x-text="toast"></span>
+  <div class="toast toast-end z-[60]" x-show="toast" x-transition.opacity x-cloak>
+    <div class="flex items-center gap-2.5 rounded-2xl border border-base-content/10 bg-base-100 px-4 py-3 shadow-soft">
+      <span class="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white" x-html="icon('check', 'h-3.5 w-3.5')"></span>
+      <span class="text-sm font-medium" x-text="toast"></span>
     </div>
   </div>
 
@@ -647,7 +875,26 @@
         },
 
         initials(name) {
-          return (name || '?').trim().slice(0, 1).toUpperCase();
+          const words = (name || '?').trim().split(/\s+/).filter(Boolean);
+          if (!words.length) return '?';
+          return words.slice(0, 2).map((word) => word[0].toUpperCase()).join('');
+        },
+
+        avatarStyle(name) {
+          const gradients = [
+            ['#6366f1', '#8b5cf6'],
+            ['#0ea5e9', '#6366f1'],
+            ['#10b981', '#0d9488'],
+            ['#f59e0b', '#f43f5e'],
+            ['#ec4899', '#8b5cf6'],
+            ['#14b8a6', '#0ea5e9'],
+            ['#f43f5e', '#d946ef'],
+            ['#84cc16', '#10b981']
+          ];
+          let hash = 0;
+          for (const ch of (name || '')) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+          const [from, to] = gradients[hash % gradients.length];
+          return `background-image: linear-gradient(135deg, ${from}, ${to})`;
         },
 
         slotsForDate(date) {
@@ -671,8 +918,9 @@
         },
 
         participantSummary(participant) {
+          const count = participant.slots.length;
           const label = participant.mode === 'unavailable' ? 'unavailable' : 'available';
-          return `${participant.slots.length} ${label} slots`;
+          return `${count} ${label} slot${count === 1 ? '' : 's'}`;
         },
 
         dateHasPeriod(date, period) {
@@ -698,20 +946,26 @@
         },
 
         segClass(seg) {
-          if (!seg) return 'bg-base-200/40 text-base-content/30';
+          if (!seg) return 'heat-none';
           const total = this.participants.length || 1;
-          if (seg.count === 0) return 'bg-base-200 text-base-content/40';
+          if (seg.count === 0) return 'heat-0';
           const ratio = seg.count / total;
-          if (ratio === 1) return 'bg-primary-600 text-white';
-          if (ratio >= .75) return 'bg-primary-500 text-white';
-          if (ratio >= .5) return 'bg-primary-200 text-primary-900';
-          if (ratio >= .25) return 'bg-primary-100 text-primary-800';
-          return 'bg-primary-50 text-primary-700';
+          if (ratio === 1) return 'heat-5';
+          if (ratio >= .75) return 'heat-4';
+          if (ratio >= .5) return 'heat-3';
+          if (ratio >= .25) return 'heat-2';
+          return 'heat-1';
         },
 
         segLabel(seg) {
           if (!seg) return '';
           return `${seg.count}/${this.participants.length}`;
+        },
+
+        get modeHint() {
+          return this.editing.mode === 'available'
+            ? 'They are only free during the selected slots.'
+            : 'They are free at all times except the selected slots.';
         },
 
         get editingDates() {
@@ -783,6 +1037,7 @@
               num: day.date(),
               excluded,
               isToday: key === today,
+              isWeekend: weekday === 0 || weekday === 6,
               am: am === undefined ? null : { count: am },
               pm: pm === undefined ? null : { count: pm }
             });
@@ -820,10 +1075,10 @@
 
         get summaryCards() {
           return [
-            { label: 'Participants', value: this.participants.length, icon: 'users' },
-            { label: 'Available slots', value: this.scoredSlots.length, icon: 'calendar-days' },
-            { label: 'Common slots', value: this.commonSlots.length, icon: 'badge-check' },
-            { label: 'Best slot', value: this.bestSlots[0] ? this.formatSlot(this.bestSlots[0].slot) : '-', icon: 'star' }
+            { label: 'People', value: this.participants.length, icon: 'users' },
+            { label: 'Active slots', value: this.scoredSlots.length, icon: 'calendar-days' },
+            { label: 'Works for all', value: this.commonSlots.length, icon: 'badge-check' },
+            { label: 'Best slot', value: this.bestSlots[0] ? this.formatSlot(this.bestSlots[0].slot) : '—', icon: 'star' }
           ];
         }
       };
